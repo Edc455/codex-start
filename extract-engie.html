@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Extraction Facture ENGIE</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+pre { background: #f0f0f0; padding: 10px; }
+</style>
+</head>
+<body>
+<h1>Extraction d'informations de factures ENGIE</h1>
+<input type="file" id="file-input" accept="application/pdf" />
+<pre id="output"></pre>
+<script>
+async function extractEngieInfo(pdfData) {
+  const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+  const pdf = await loadingTask.promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const strings = content.items.map(item => item.str);
+    fullText += strings.join(' ') + '\n';
+  }
+
+  // Patterns typiques des factures ENGIE (à adapter selon le modèle exact)
+  const patterns = {
+    numeroClient: /N\s*\u00b0\s*client\s*:?\s*(\d+)/i,
+    dateFacture: /Date\s*d'?\u00e9mission\s*:?\s*([\d\/]+)/i,
+    montantTTC: /Montant\s*TTC\s*:?\s*([\d,.]+\s*\u20ac)/i,
+    periode: /P\u00e9riode\s*du\s*([\d\/]+)\s*au\s*([\d\/]+)/i
+  };
+
+  const results = {};
+  for (const [key, pattern] of Object.entries(patterns)) {
+    const match = fullText.match(pattern);
+    if (match) {
+      results[key] = match.slice(1).join(' ');
+    }
+  }
+  return results;
+}
+
+function displayResults(results) {
+  const output = document.getElementById('output');
+  if (Object.keys(results).length === 0) {
+    output.textContent = 'Aucune information trouv\u00e9e. Assurez-vous de s\u00e9lectionner une facture ENGIE compatible.';
+    return;
+  }
+  output.textContent = JSON.stringify(results, null, 2);
+}
+
+document.getElementById('file-input').addEventListener('change', async function() {
+  const file = this.files[0];
+  if (!file) return;
+  const arrayBuffer = await file.arrayBuffer();
+  const results = await extractEngieInfo(arrayBuffer);
+  displayResults(results);
+});
+</script>
+</body>
+</html>
