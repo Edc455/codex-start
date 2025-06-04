@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Analyzer</title>
+    <!-- Load pdf.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.141/pdf.min.js"></script>
+</head>
+<body>
+    <h1>PDF Analyzer</h1>
+    <input type="file" id="pdfInput" accept="application/pdf" />
+    <div id="output"></div>
+    <script>
+        const fileInput = document.getElementById('pdfInput');
+        const output = document.getElementById('output');
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const arrayBuffer = await file.arrayBuffer();
+
+            const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+            let textContent = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const text = await page.getTextContent();
+                const pageText = text.items.map(item => item.str).join(" ");
+                textContent += pageText + "\n";
+            }
+
+            output.innerHTML = `Pages: ${pdf.numPages}<br><pre>${textContent}</pre>`;
+        });
+    </script>
+</body>
+</html>
